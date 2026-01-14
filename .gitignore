@@ -9,5 +9,10 @@
 desktop.ini
 thumbs.db
 
+# python
+__pycache__
+
 # cache
 /launches.json
+/.cache/*
+!/.cache/.gitkeep

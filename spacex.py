@@ -1,43 +1,11 @@
 #!/usr/bin/env python3
 
-from requests import Session
-from requests.adapters import HTTPAdapter
-from urllib3.util import Retry
+from datetime import datetime
+from src.http import HttpClient
 import argparse
 import json
 import logging
 import os
-import requests
-import sys
-
-
-class HttpClient:
-    def __init__(self):
-        self.session = Session()
-        retries = Retry(
-            total=1,  # one retry
-            backoff_factor=15,  # waits 15 seconds for second try
-        )
-        self.session.mount("http://", HTTPAdapter(max_retries=retries))
-        self.session.mount("https://", HTTPAdapter(max_retries=retries))
-
-    def get(self, url):
-        try:
-            response = self.session.get(
-                url,
-                timeout=15,  # 15 seconds of timeout
-            )
-            if response.status_code < 200 or response.status_code > 299:  # duplicates "except Exception" but I left it for the exercise purposes
-                logging.critical(f"HTTP GET response error, status code: {response.status_code}")
-                sys.exit(1)
-            response.raise_for_status()
-            return response
-        except requests.exceptions.RetryError:
-            logging.critical(f"HTTP GET retry limit reached")
-            sys.exit(1)
-        except Exception as e:
-            logging.critical(f"HTTP GET unknown error: {e}")
-            sys.exit(1)
 
 
 class SpaceXApp:
@@ -46,6 +14,18 @@ class SpaceXApp:
         self.refresh = refresh
         self.cache = cache
         self.client = HttpClient()
+        self.report_year = 2022
+
+    def is_in_report_year(self, launch):
+        if not "date_utc" in launch:
+            return False  # date not present
+        try:
+            date = datetime.fromisoformat(launch["date_utc"])
+            if date.year != self.report_year:
+                return False
+        except Exception as e:
+            return False  # invalid date
+        return True
 
     def get_launches(self):
         # cache file refresh
@@ -72,15 +52,12 @@ class SpaceXApp:
     def report_action(self):
         launches = self.get_launches()
 
-        report_year = 2022
         total_launches = 0
         successful_launches = 0
         failed_launches = 0
         for launch in launches:
-            if not "date_utc" in launch:
-                raise Exception("launch date_utc field not found")
-            if not launch["date_utc"].startswith(f"{report_year}-"):
-                continue  # skip entries from another years
+            if not self.is_in_report_year(launch):
+                continue
 
             total_launches += 1
             if "success" in launch:
@@ -91,7 +68,7 @@ class SpaceXApp:
 
         success_ratio = successful_launches / (successful_launches + failed_launches) * 100
 
-        print(f"Year {report_year} summary:")
+        print(f"Year {self.report_year} summary:")
         print(f"Total: {total_launches} | Successful: {successful_launches} | Failed: {failed_launches} | Success ratio: {success_ratio:.2f}%")
 
     def payloads_action(self):
@@ -99,6 +76,9 @@ class SpaceXApp:
 
         counts = []
         for launch in launches:
+            if not self.is_in_report_year(launch):
+                continue
+
             if not "payloads" in launch:
                 counts.append(0)
                 continue
@@ -113,10 +93,10 @@ class SpaceXApp:
 
         counts = {}
         for launch in launches:
-            launchpad = "unknown"
-            if "launchpad" in launch:
-                launchpad = launch["launchpad"]
+            if not self.is_in_report_year(launch):
+                continue
 
+            launchpad = launch["launchpad"] if "launchpad" in launch else "unknown"
             if not launchpad in counts:
                 counts[launchpad] = 0
             counts[launchpad] += 1

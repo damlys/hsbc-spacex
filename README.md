@@ -48,12 +48,11 @@ Year 2022 summary:
 Total: 62 | Successful: 43 | Failed: 0 | Success ratio: 100.00%
 
 $ ./spacex.py --action payloads
-Average payloads per launch: 1.08
+Average payloads per launch: 0.25
 
 $ ./spacex.py --action launchpads
 Count of launches per launchpad ID:
-- 5e9e4501f509094ba4566f84 - 112
-- 5e9e4502f509094188566f88 - 58
-- 5e9e4502f509092b78566f87 - 30
-- 5e9e4502f5090995de566f86 - 5
+- 5e9e4501f509094ba4566f84 - 34
+- 5e9e4502f509094188566f88 - 17
+- 5e9e4502f509092b78566f87 - 11
 ```
